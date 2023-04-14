@@ -21,10 +21,16 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ff00a6"
-      }
+      },
+      "package": "com.pacisjules.shamiboutique"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "632b7b28-daf0-432d-8a81-d45e42833191"
+      }
     }
   }
 }
