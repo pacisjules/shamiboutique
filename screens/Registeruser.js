@@ -72,8 +72,8 @@ const Registeruser = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <StatusBar
-        backgroundColor="white" // Set the background color of the status bar
-        barStyle="light-content" // Set the text color of the status bar to dark
+        backgroundColor="#ff00a6" // Set the background color of the status bar
+        barStyle="white" // Set the text color of the status bar to dark
         hidden={false} // Show the status bar
       />
       <Image style={styles.tinyLogo} source={require("../assets/icon.png")} />

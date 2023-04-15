@@ -65,11 +65,12 @@ function Entry() {
   return (
     <SafeAreaView style={styles.containerer}>
       <View style={styles.container}>
-        <StatusBar
-          backgroundColor="white" // Set the background color of the status bar
-          barStyle="light-content" // Set the text color of the status bar to dark
-          hidden={false} // Show the status bar
-        />
+      
+      <StatusBar
+        backgroundColor="#ff00a6" // Set the background color of the status bar
+        barStyle="white" // Set the text color of the status bar to dark
+        hidden={false} // Show the status bar
+      />
 
         <View style={styles.dates_up}>
           <Text style={styles.dates}>Period date: {formattedDate}</Text>
