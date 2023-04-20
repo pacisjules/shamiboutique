@@ -9,8 +9,10 @@ import { createDrawerNavigator } from '@react-navigation/drawer';
 import LoginScreen from "./screens/LoginScreen";
 import Registeruser from "./screens/Registeruser";
 import HomeScreen from "./screens/HomeScreen";
-
-
+import Entry from "./screens/app/Entry";
+import Products from "./screens/app/Products";
+import ProductView from "./screens/app/ProductView";
+import Sales from "./screens/app/Sales";
 
 function App() {
   const [company, setCompany] = useState(AsyncStorage.getItem("co_name"));
@@ -56,6 +58,11 @@ function App() {
               },
             }}
           />
+          <Stack.Screen name="Register" component={Registeruser} />
+          <Stack.Screen name="Entry" component={Entry} />
+          <Stack.Screen name="Products" component={Products} />
+          <Stack.Screen name="ProductView" component={ProductView} title="View information"/>
+          <Stack.Screen name="Sales" component={Sales} title="Sales"/>
         </Stack.Navigator>
       ) : (
 
@@ -69,7 +76,10 @@ function App() {
           
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={Registeruser} />
-          
+          <Stack.Screen name="Entry" component={Entry} />
+          <Stack.Screen name="Products" component={Products} />
+          <Stack.Screen name="ProductView" component={ProductView} title="View information" />
+          <Stack.Screen name="Sales" component={Sales} title="Sales"/>
           <Stack.Screen
             name="Home"
             component={HomeScreen}

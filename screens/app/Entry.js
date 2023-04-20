@@ -9,6 +9,8 @@ import {
   TouchableOpacity,
   SafeAreaView,
   FlatList,
+  ScrollView,
+  RefreshControl,
 } from "react-native";
 import { useFonts } from "expo-font";
 import {
@@ -16,36 +18,178 @@ import {
   AntDesign,
   MaterialIcons,
   FontAwesome,
+  Fontisto,
 } from "@expo/vector-icons";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
+import axios from "axios";
+import { useIsFocused } from "@react-navigation/native";
 
-const DATA = [
-  {
-    id: "bd7acbea-c1b1-46c2-aed5-3ad53abb28ba",
-    title: "First Item",
-  },
-  {
-    id: "3ac68afc-c605-48d3-a4f8-fbd91aa97f63",
-    title: "Second Item",
-  },
-  {
-    id: "58694a0f-3da1-471f-bd96-145571e29d72",
-    title: "Third Item",
-  },
-];
-
-const Item = ({ title }) => (
-  <View style={styles.item}>
-    <Text style={styles.title}>{title}</Text>
-  </View>
-);
-
-function Entry() {
+function Entry({ navigation }) {
   const currentDate = new Date();
-  const formattedDate = currentDate.toLocaleDateString();
+
+  const [monthname, setMonthname] = useState("Month");
+  const [dayname, setDayname] = useState("day");
+  const day = currentDate.getDay();
+
+  const montly = currentDate.getMonth();
+  const date = currentDate.getDate();
+  const year = currentDate.getFullYear();
+
+  const formattedDate =
+    year +
+    "-" +
+    (montly + 1).toString().padStart(2, "0") +
+    "-" +
+    date.toString().padStart(2, "0");
+
+    
+  const isFocused = useIsFocused();
+
+  const rundays = () => {
+    //Get Days
+    switch (day) {
+      case 0:
+        setDayname("Sunday");
+        break;
+      case 1:
+        setDayname("Monday");
+        break;
+      case 2:
+        setDayname("Tuesday");
+        break;
+      case 3:
+        setDayname("Wednesday");
+        break;
+      case 4:
+        setDayname("Thursday");
+        break;
+      case 5:
+        setDayname("Friday");
+        break;
+      case 6:
+        setDayname("Saturday");
+        break;
+      default:
+        setDayname("Invalid day of week.");
+        break;
+    }
+
+    switch (montly) {
+      case 0:
+        setMonthname("January");
+        break;
+      case 1:
+        setMonthname("February");
+        break;
+      case 2:
+        setMonthname("March");
+        break;
+      case 3:
+        setMonthname("April");
+        break;
+      case 4:
+        setMonthname("May");
+        break;
+      case 5:
+        setMonthname("June");
+        break;
+      case 6:
+        setMonthname("July");
+        break;
+      case 7:
+        setMonthname("August");
+        break;
+      case 8:
+        setMonthname("September");
+        break;
+      case 9:
+        setMonthname("October");
+        break;
+      case 10:
+        setMonthname("November");
+        break;
+      case 11:
+        setMonthname("December");
+        break;
+      default:
+        setMonthname("Invalid month number.");
+        break;
+    }
+  };
+
   const formattedTime = currentDate.toLocaleTimeString();
-  const navigation = useNavigation();
+  const [refreshing, setRefreshing] = useState(false);
+  const [currentdata, setCurrentdata] = useState([]);
+
+  const [tot, setTot] = useState([]);
+  const [totbenefit, setTotBenefit] = useState([]);
+
+  const getcurrentproduct = () => {
+    axios
+      .get(
+        "https://unforgivable-gangs.000webhostapp.com/maincondition.php/five_sales_current",
+        {
+          params: {
+            date: formattedDate,
+            company: 5,
+          },
+        }
+      )
+      .then((response) => {
+        setCurrentdata(response.data);
+        //console.log(currentdata)
+      })
+      .catch((error) => {
+        console.error("No response");
+      });
+  };
+
+  const gettotals = () => {
+    axios
+      .get(
+        "https://unforgivable-gangs.000webhostapp.com/maincondition.php/all_sales_totals",
+        {
+          params: {
+            date: formattedDate,
+            company: 5,
+          },
+        }
+      )
+      .then((response) => {
+        setTot(response.data);
+        //console.log(tot)
+      })
+      .catch((error) => {
+        console.error("No response");
+      });
+  };
+
+  useEffect(() => {
+    getcurrentproduct();
+    gettotals();
+    rundays();
+
+    if (isFocused) {
+      getcurrentproduct();
+      gettotals();
+      rundays();
+      console.log("Screen has been refreshed");
+    }
+  }, [isFocused, navigation]);
+
+  const Item = ({ name, quantity, Total }) => (
+    <View style={styles.item}>
+      <Fontisto name="shopping-basket" size={30} color="#ff00a6" />
+      <Text style={styles.title}>
+        {quantity} {name}
+      </Text>
+      <Text style={styles.normal}> {Total} </Text>
+    </View>
+  );
+
+  //const navigation = useNavigation();
   const handlePress = () => {
     navigation.openDrawer();
 
@@ -62,122 +206,157 @@ function Entry() {
     return true;
   }
 
+  const onRefresh = () => {
+    setRefreshing(true);
+    getcurrentproduct();
+    gettotals();
+    // perform your refresh logic here
+    setRefreshing(false);
+  };
+
   return (
     <SafeAreaView style={styles.containerer}>
-      <View style={styles.container}>
-      
-      <StatusBar
-        backgroundColor="#ff00a6" // Set the background color of the status bar
-        barStyle="white" // Set the text color of the status bar to dark
-        hidden={false} // Show the status bar
-      />
+      <ScrollView
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        <View style={styles.container}>
+          <StatusBar
+            backgroundColor="#ff00a6" // Set the background color of the status bar
+            barStyle="white" // Set the text color of the status bar to dark
+            hidden={false} // Show the status bar
+          />
 
-        <View style={styles.dates_up}>
-          <Text style={styles.dates}>Period date: {formattedDate}</Text>
+          <View style={styles.dates_up}>
+            <Text style={styles.dates}>
+              {date}
+              {"th"} {monthname} {year}, {dayname}{" "}
+            </Text>
 
-          <TouchableOpacity onPress={handlePress}>
-            <Image
-              style={styles.tinyLogo}
-              source={require("../../assets/icon.png")}
-            />
-          </TouchableOpacity>
+            <TouchableOpacity onPress={handlePress}>
+              <Image
+                style={styles.tinyLogo}
+                source={require("../../assets/icon.png")}
+              />
+            </TouchableOpacity>
 
-          <View style={styles.news}>
-            <View style={styles.infos}>
-              <Text style={styles.textInH}>Total Sales</Text>
-              <Text style={styles.textInG}>
-                {new Intl.NumberFormat("en-US", {
-                  style: "currency",
-                  currency: "RWF",
-                }).format(12000)}
-              </Text>
-            </View>
-            <View style={styles.infos}>
-              <Text style={styles.textInH}>Benefits</Text>
-              <Text style={styles.textInG}>
-                {new Intl.NumberFormat("en-US", {
-                  style: "currency",
-                  currency: "RWF",
-                }).format(2000)}
-              </Text>
+            <View style={styles.news}>
+              <View style={styles.infos}>
+                <Text style={styles.textInH}>Total Sales</Text>
+
+                {tot.map((post) => (
+                  <Text key="1" style={styles.textInG}>
+                    {new Intl.NumberFormat("en-US", {
+                      style: "currency",
+                      currency: "RWF",
+                    }).format(post.SalesTotal)}
+                  </Text>
+                ))}
+              </View>
+              <View style={styles.infos}>
+                <Text style={styles.textInH}>Benefits</Text>
+
+                {tot.map((post) => (
+                  <Text key="1" style={styles.textInG}>
+                    {new Intl.NumberFormat("en-US", {
+                      style: "currency",
+                      currency: "RWF",
+                    }).format(post.Benefit_Total)}
+                  </Text>
+                ))}
+              </View>
             </View>
           </View>
-        </View>
 
-        <Text style={styles.textTitle}>Sales functions</Text>
-        <View style={styles.fuc}>
-          <TouchableOpacity onPress={() => alert("Sales")}>
-            <View style={styles.fucs}>
-              <MaterialCommunityIcons name="sale" size={24} color="#ff00a6" />
-              <Text style={styles.textInGFuc}>Sales</Text>
-            </View>
-          </TouchableOpacity>
+          <Text style={styles.textTitle}>Sales functions</Text>
+          <View style={styles.fuc}>
+            <TouchableOpacity onPress={() => navigation.navigate("Sales")}>
+              <View style={styles.fucs}>
+                <MaterialCommunityIcons name="sale" size={24} color="#ff00a6" />
+                <Text style={styles.textInGFuc}>Sales</Text>
+              </View>
+            </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => alert("Products")}>
-            <View style={styles.fucs}>
-              <AntDesign name="database" size={24} color="#ff00a6" />
-              <Text style={styles.textInGFuc}>Products</Text>
-            </View>
-          </TouchableOpacity>
+            <TouchableOpacity onPress={() => navigation.navigate("Products")}>
+              <View style={styles.fucs}>
+                <AntDesign name="database" size={24} color="#ff00a6" />
+                <Text style={styles.textInGFuc}>Products</Text>
+              </View>
+            </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => alert("Expenses")}>
-            <View style={styles.fucs}>
-              <MaterialIcons
-                name="workspaces-filled"
-                size={24}
-                color="#ff00a6"
+            <TouchableOpacity onPress={() => alert("Expenses")}>
+              <View style={styles.fucs}>
+                <MaterialIcons
+                  name="workspaces-filled"
+                  size={24}
+                  color="#ff00a6"
+                />
+                <Text style={styles.textInGFuc}>Expenses</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => alert("Debts")}>
+              <View style={styles.fucs}>
+                <MaterialCommunityIcons
+                  name="cash-lock"
+                  size={24}
+                  color="#ff00a6"
+                />
+                <Text style={styles.textInGFuc}>Debts</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => alert("Paids")}>
+              <View style={styles.fucs}>
+                <MaterialCommunityIcons
+                  name="cash-lock-open"
+                  size={24}
+                  color="#ff00a6"
+                />
+                <Text style={styles.textInGFuc}>Paid Debts</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => alert("Report")}>
+              <View style={styles.fucs}>
+                <FontAwesome name="print" size={24} color="#ff00a6" />
+                <Text style={styles.textInGFuc}>Report</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.textTitle2}>Current sales</Text>
+
+          <FlatList
+            horizontal={true}
+            data={currentdata}
+            renderItem={({ item }) => (
+              <Item
+                name={item.name}
+                quantity={item.quantity}
+                Total={new Intl.NumberFormat("en-US", {
+                  style: "currency",
+                  currency: "RWF",
+                }).format(item.Total)}
               />
-              <Text style={styles.textInGFuc}>Expenses</Text>
-            </View>
-          </TouchableOpacity>
+            )}
+            keyExtractor={(item) => item.id}
+          />
 
-          <TouchableOpacity onPress={() => alert("Debts")}>
-            <View style={styles.fucs}>
-              <MaterialCommunityIcons
-                name="cash-lock"
-                size={24}
-                color="#ff00a6"
-              />
-              <Text style={styles.textInGFuc}>Debts</Text>
-            </View>
-          </TouchableOpacity>
+          {/* {currentdata.map((item) => (
+            <Text key={item.id}>{item.name}</Text>
+          ))} */}
 
-          <TouchableOpacity onPress={() => alert("Paids")}>
-            <View style={styles.fucs}>
-              <MaterialCommunityIcons
-                name="cash-lock-open"
-                size={24}
-                color="#ff00a6"
-              />
-              <Text style={styles.textInGFuc}>Paid Debts</Text>
-            </View>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => alert("Report")}>
-            <View style={styles.fucs}>
-              <FontAwesome name="print" size={24} color="#ff00a6" />
-              <Text style={styles.textInGFuc}>Report</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.textTitle2}>Current sales</Text>
-
-        <FlatList
-          horizontal={true}
-          data={DATA}
-          renderItem={({ item }) => <Item title={item.title} />}
-          keyExtractor={(item) => item.id}
-        />
-
-        {/* <Text>Entry Screen</Text>
+          {/* <Text>Entry Screen</Text>
       <Button
         onPress={handlePress}
         title="Clean"
         color="#841584"
         accessibilityLabel="Learn more about this purple button"
       /> */}
-      </View>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -208,7 +387,7 @@ const styles = StyleSheet.create({
   tinyLogo: {
     width: 80,
     height: 80,
-    borderRadius: 50,
+    borderRadius: 100,
     marginTop: 10,
   },
   news: {
@@ -315,16 +494,33 @@ const styles = StyleSheet.create({
   },
 
   item: {
-    backgroundColor: "black",
+    backgroundColor: "white",
     padding: 10,
     marginVertical: 8,
     marginHorizontal: 10,
     borderRadius: 10,
     width: 120,
+    height: 175,
+    textAlign: "center",
+    alignItems: "center",
+    borderColor: "#a8006e",
+    borderStyle: "solid",
+    borderWidth: 3,
+    justifyContent: "space-around",
   },
   title: {
-    fontSize: 16,
-    color: "white",
+    fontSize: 12,
+    color: "#a8006e",
+    textAlign: "center",
+    fontWeight: "900",
+  },
+
+  normal: {
+    fontSize: 12,
+    color: "black",
+    textAlign: "center",
+    padding: 3,
+    fontWeight: "bold",
   },
 });
 
