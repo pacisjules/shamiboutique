@@ -11,8 +11,13 @@ import {
   FlatList,
   ScrollView,
   RefreshControl,
+  ActivityIndicator,
+  Alert,
+  Share,
+  ImageBackground
 } from "react-native";
-import { useFonts } from "expo-font";
+
+
 import {
   MaterialCommunityIcons,
   AntDesign,
@@ -21,21 +26,50 @@ import {
   Fontisto,
 } from "@expo/vector-icons";
 
+
+import {
+  Center,
+  NativeBaseProvider,
+} from "native-base";
+
+import * as Font from 'expo-font';
+
+import { useSelector, useDispatch } from "react-redux";
+import { fetchTotalsData } from "../../features/changetotals/change_total_slice";
+import { fetchCurrentProductData } from "../../features/getcurrentproducts/get_current";
+
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import axios from "axios";
 import { useIsFocused } from "@react-navigation/native";
 
-function Entry({ navigation }) {
+export default function Entry({ navigation }) {
+  const loadImg = require("../../assets/afroGril.jpg");
   const currentDate = new Date();
-
+  const [fontsLoaded, setFontsLoaded] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [monthname, setMonthname] = useState("Month");
   const [dayname, setDayname] = useState("day");
   const day = currentDate.getDay();
 
+
+  const [user, setUser] = useState(AsyncStorage.getItem("username"));
+  const [company, setCompany] = useState(AsyncStorage.getItem("co_name"));
+
   const montly = currentDate.getMonth();
   const date = currentDate.getDate();
   const year = currentDate.getFullYear();
+
+  const dispatch = useDispatch();
+  const { Total_data, isLoading, error } = useSelector(
+    (state) => state.changeTotals
+  );
+
+  const {
+    Current_products,
+    Current_products_isLoading,
+    Current_product_error,
+  } = useSelector((state) => state.get_current_products);
 
   const formattedDate =
     year +
@@ -44,8 +78,28 @@ function Entry({ navigation }) {
     "-" +
     date.toString().padStart(2, "0");
 
-    
   const isFocused = useIsFocused();
+
+
+  
+  //Load fonts
+  async function loadFonts() {
+    await Font.loadAsync({
+      'magneto': require('../../assets/fonts/magneto.ttf'),
+      'Cocogoose': require('../../assets/fonts/Cocogoose.ttf'),
+
+      'Poppins-Bold': require('../../assets/fonts/Poppins-Bold.ttf'),
+      'Poppins-Regular': require('../../assets/fonts/Poppins-Regular.ttf'),
+      'Poppins-SemiBold': require('../../assets/fonts/Poppins-SemiBold.ttf'),
+
+    });
+
+    setFontsLoaded(true);
+  }
+
+
+
+
 
   const rundays = () => {
     //Get Days
@@ -119,103 +173,117 @@ function Entry({ navigation }) {
     }
   };
 
-  const formattedTime = currentDate.toLocaleTimeString();
-  const [refreshing, setRefreshing] = useState(false);
-  const [currentdata, setCurrentdata] = useState([]);
 
-  const [tot, setTot] = useState([]);
-  const [totbenefit, setTotBenefit] = useState([]);
-
-  const getcurrentproduct = () => {
-    axios
-      .get(
-        "https://unforgivable-gangs.000webhostapp.com/maincondition.php/five_sales_current",
-        {
-          params: {
-            date: formattedDate,
-            company: 5,
-          },
-        }
-      )
-      .then((response) => {
-        setCurrentdata(response.data);
-        //console.log(currentdata)
-      })
-      .catch((error) => {
-        console.error("No response");
-      });
-  };
-
-  const gettotals = () => {
-    axios
-      .get(
-        "https://unforgivable-gangs.000webhostapp.com/maincondition.php/all_sales_totals",
-        {
-          params: {
-            date: formattedDate,
-            company: 5,
-          },
-        }
-      )
-      .then((response) => {
-        setTot(response.data);
-        //console.log(tot)
-      })
-      .catch((error) => {
-        console.error("No response");
-      });
-  };
 
   useEffect(() => {
-    getcurrentproduct();
-    gettotals();
+    
+    dispatch(fetchTotalsData());
+    dispatch(fetchCurrentProductData());
     rundays();
-
+    loadFonts();
     if (isFocused) {
-      getcurrentproduct();
-      gettotals();
+      dispatch(fetchTotalsData());
+      dispatch(fetchCurrentProductData());
       rundays();
-      console.log("Screen has been refreshed");
+      //console.log("Screen has been refreshed");
     }
   }, [isFocused, navigation]);
 
-  const Item = ({ name, quantity, Total }) => (
+
+  //Check if font loaded
+
+  if (!fontsLoaded) {
+    return (
+      <NativeBaseProvider>
+      <ImageBackground source={loadImg} resizeMode="cover" style={styles.image}>
+      <Center flex={1} px="3">
+        <ActivityIndicator size="large" color="#a8006e" />
+        <Text style={{
+            color:"#ff00a6",
+            fontWeight:'bold',
+            fontSize:20
+          }}>Loading...</Text>
+      </Center>
+      </ImageBackground>
+    </NativeBaseProvider>
+    );
+  }
+
+
+
+
+
+  const Item = ({ name, quantity, Total, time }) => (
     <View style={styles.item}>
       <Fontisto name="shopping-basket" size={30} color="#ff00a6" />
       <Text style={styles.title}>
         {quantity} {name}
       </Text>
       <Text style={styles.normal}> {Total} </Text>
+      <Text
+        style={{
+          textAlign: "center",
+          fontWeight: "bold",
+          fontSize: 10,
+          marginTop: -20,
+          color: "#2e9100",
+        }}
+      >
+        {" "}
+        {time}{" "}
+      </Text>
     </View>
   );
 
   //const navigation = useNavigation();
   const handlePress = () => {
     navigation.openDrawer();
-
     //AsyncStorage.clear();
   };
 
-  const [loadedFonts] = useFonts({
-    Regular: require("../../assets/fonts/magneto.ttf"),
-    Quick: require("../../assets/fonts/Quicksand.ttf"),
-    Cocogoose: require("../../assets/fonts/Cocogoose.ttf"),
-  });
-
-  if (!loadedFonts) {
-    return true;
-  }
-
+ 
   const onRefresh = () => {
     setRefreshing(true);
-    getcurrentproduct();
-    gettotals();
+    dispatch(fetchTotalsData());
+    dispatch(fetchCurrentProductData());
+
     // perform your refresh logic here
     setRefreshing(false);
   };
 
+
+  //Time ago function
+
+  function timeAgo(dateTimeStr) {
+    const dateTime = new Date(dateTimeStr);
+    const now = new Date();
+    const diffMs = now - dateTime;
+    const diffSeconds = Math.round(diffMs / 1000);
+    const diffMinutes = Math.round(diffSeconds / 60);
+    const diffHours = Math.round(diffMinutes / 60);
+    const diffDays = Math.round(diffHours / 24);
+  
+    if (diffSeconds < 60) {
+      return `${diffSeconds} seconds ago`;
+    } else if (diffMinutes < 60) {
+      return `${diffMinutes} minutes ago`;
+    } else if (diffHours < 24) {
+      return `${diffHours} hours ago`;
+    } else {
+      return `${diffDays} days ago`;
+    }
+  }
+
+
+
+
+
   return (
-    <SafeAreaView style={styles.containerer}>
+    <SafeAreaView
+      style={{
+        backgroundColor: "#fff",
+      }}
+    >
       <ScrollView
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -223,7 +291,7 @@ function Entry({ navigation }) {
       >
         <View style={styles.container}>
           <StatusBar
-            backgroundColor="#ff00a6" // Set the background color of the status bar
+            backgroundColor="#a8006e" // Set the background color of the status bar
             barStyle="white" // Set the text color of the status bar to dark
             hidden={false} // Show the status bar
           />
@@ -245,26 +313,32 @@ function Entry({ navigation }) {
               <View style={styles.infos}>
                 <Text style={styles.textInH}>Total Sales</Text>
 
-                {tot.map((post) => (
-                  <Text key="1" style={styles.textInG}>
-                    {new Intl.NumberFormat("en-US", {
-                      style: "currency",
-                      currency: "RWF",
-                    }).format(post.SalesTotal)}
-                  </Text>
-                ))}
+                {isLoading
+                  ? <ActivityIndicator size="small" color="#a8006e" />
+                  : Total_data.map((post) => (
+                      <Text key="1" style={styles.textInG}>
+                        {new Intl.NumberFormat("en-US", {
+                          style: "currency",
+                          currency: "RWF",
+                        }).format(post.SalesTotal)}
+                      </Text>
+                    ))}
               </View>
               <View style={styles.infos}>
                 <Text style={styles.textInH}>Benefits</Text>
 
-                {tot.map((post) => (
-                  <Text key="1" style={styles.textInG}>
-                    {new Intl.NumberFormat("en-US", {
-                      style: "currency",
-                      currency: "RWF",
-                    }).format(post.Benefit_Total)}
-                  </Text>
-                ))}
+                {isLoading ? (
+                  <ActivityIndicator size="small" color="#a8006e" />
+                ) : (
+                  Total_data.map((post) => (
+                    <Text key="1" style={styles.textInG}>
+                      {new Intl.NumberFormat("en-US", {
+                        style: "currency",
+                        currency: "RWF",
+                      }).format(post.Benefit_Total)}
+                    </Text>
+                  ))
+                )}
               </View>
             </View>
           </View>
@@ -328,33 +402,52 @@ function Entry({ navigation }) {
 
           <Text style={styles.textTitle2}>Current sales</Text>
 
-          <FlatList
-            horizontal={true}
-            data={currentdata}
-            renderItem={({ item }) => (
-              <Item
-                name={item.name}
-                quantity={item.quantity}
-                Total={new Intl.NumberFormat("en-US", {
-                  style: "currency",
-                  currency: "RWF",
-                }).format(item.Total)}
-              />
-            )}
-            keyExtractor={(item) => item.id}
-          />
+          {Current_products_isLoading ? (
+            <View>
+              <ActivityIndicator size="large" color="#a8006e" />
+              <Text style={styles.textInGFuc}>Loading Wait...</Text>
+            </View>
+          ) : (
+            <FlatList
+             style={{
+              backgroundColor:'white'
+             }}
+              horizontal={true}
+              data={Current_products}
+              renderItem={({ item }) => (
+                <TouchableOpacity onPress={() =>
+                  Alert.alert(`${item.name}`, `Information:\n1. Qty ${item.quantity}\n2. Benefit ${item.benefit} \n3. Time ${item.Sales_time}\n5. Total:${new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "RWF",
+                  }).format(item.Total)}`, [
+                    {text: 'OK', onPress: () => console.log('OK Pressed')},
+                    {text: 'SHARE', onPress: () => Share.share({
+                      message:
+                      `${company._j} system:\n${user._j} share to you ${item.name} sale information.\n1. Price: ${item.price}\n2. Qty: ${item.quantity}\n3. Benefit: ${item.benefit} \n4.Time: ${item.Sales_time}\nTotal:${new Intl.NumberFormat("en-US", {
+                        style: "currency",
+                        currency: "RWF",
+                      }).format(item.Total)}`,
+                      url: 'https://myapp.com',
+                      title: `${company._j} `,
+                    })},
+                  ])
+                }>
+                <Item
+                  name={item.name}
+                  quantity={item.quantity}
+                  Total={new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "RWF",
+                  }).format(item.Total)}
+                  time={timeAgo(item.Sales_time)}
+                />
+                </TouchableOpacity>
 
-          {/* {currentdata.map((item) => (
-            <Text key={item.id}>{item.name}</Text>
-          ))} */}
+              )}
+              keyExtractor={(item) => item.id}
+            />
 
-          {/* <Text>Entry Screen</Text>
-      <Button
-        onPress={handlePress}
-        title="Clean"
-        color="#841584"
-        accessibilityLabel="Learn more about this purple button"
-      /> */}
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -363,8 +456,7 @@ function Entry({ navigation }) {
 
 const styles = StyleSheet.create({
   container: {
-    //flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "white",
     marginTop: 30,
     width: "100%",
     height: "100%",
@@ -382,6 +474,7 @@ const styles = StyleSheet.create({
     color: "white",
     textAlign: "center",
     marginTop: 10,
+    fontFamily: "Poppins-Bold",
   },
 
   tinyLogo: {
@@ -418,18 +511,19 @@ const styles = StyleSheet.create({
   },
 
   textInH: {
+    fontFamily: "Poppins-Bold",
     textAlign: "center",
-    fontWeight: "bold",
     fontSize: 16,
     marginTop: 10,
     color: "#a8006e",
+    
   },
   textInG: {
     textAlign: "center",
-    fontWeight: "bold",
     fontSize: 18,
     marginTop: 20,
     color: "#0a0a0a",
+    fontFamily: "Poppins-Bold",
   },
 
   fuc: {
@@ -463,15 +557,14 @@ const styles = StyleSheet.create({
 
   textInGFuc: {
     textAlign: "center",
-    fontWeight: "bold",
     fontSize: 10,
     color: "#0a0a0a",
+    fontFamily: "Poppins-Regular",
   },
 
   textTitle: {
-    fontFamily: "Regular",
+    fontFamily: "Poppins-Bold",
     textAlign: "left",
-    fontWeight: "bold",
     fontSize: 16,
     marginTop: 85,
     marginLeft: 5,
@@ -479,9 +572,8 @@ const styles = StyleSheet.create({
   },
 
   textTitle2: {
-    fontFamily: "Regular",
+    fontFamily: "Poppins-Bold",
     textAlign: "left",
-    fontWeight: "bold",
     fontSize: 16,
     marginTop: 13,
     marginLeft: 5,
@@ -494,7 +586,7 @@ const styles = StyleSheet.create({
   },
 
   item: {
-    backgroundColor: "white",
+    backgroundColor: "#fff2fb",
     padding: 10,
     marginVertical: 8,
     marginHorizontal: 10,
@@ -505,14 +597,23 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderColor: "#a8006e",
     borderStyle: "solid",
-    borderWidth: 3,
+    borderWidth: 2,
     justifyContent: "space-around",
+    shadowColor: "#000000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   title: {
     fontSize: 12,
     color: "#a8006e",
     textAlign: "center",
     fontWeight: "900",
+    fontFamily: "Poppins-Bold",
   },
 
   normal: {
@@ -521,7 +622,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
     padding: 3,
     fontWeight: "bold",
+    fontFamily: "Poppins-Bold",
+  },
+
+  image: {
+    flex: 1,
+    justifyContent: 'center',
   },
 });
 
-export default Entry;

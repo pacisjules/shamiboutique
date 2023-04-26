@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef  } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { StatusBar } from "expo-status-bar";
 import {
   StyleSheet,
@@ -20,8 +20,7 @@ import {
   AntDesign,
   MaterialIcons,
   FontAwesome,
-  Ionicons
-  
+  Ionicons,
 } from "@expo/vector-icons";
 
 import {
@@ -34,7 +33,7 @@ import {
   AlertDialog,
   useToast,
   Icon,
-  Stack, 
+  Stack,
   Pressable,
 } from "native-base";
 
@@ -42,6 +41,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation } from "@react-navigation/native";
 import { useIsFocused } from "@react-navigation/native";
 import axios from "axios";
+
+import { useSelector, useDispatch } from "react-redux";
+import { fetchAllProductsData } from "../../features/getfullproducts/getallproducts";
 
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
@@ -54,9 +56,14 @@ Notifications.setNotificationHandler({
   }),
 });
 
-
-
 const Products = ({ navigation }) => {
+  const dispatch = useDispatch();
+
+  //Get All products from redux array
+  const { all_product_error, all_products, all_products_isLoading } =
+    useSelector((state) => state.all_products);
+
+  //Normal
   const [refreshing, setRefreshing] = useState(false);
   const [datas, setDatas] = useState([]);
   const isFocused = useIsFocused();
@@ -67,12 +74,12 @@ const Products = ({ navigation }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-   //Infos
-   const [ident, setIdent] = useState("");
-   const [pro_name, setPro_name] = useState("");
-   const [pro_price, setPro_price] = useState("");
-   const [pro_benefit, setPro_benefit] = useState("");
-   const [edit, setEdit] = useState(true);
+  //Infos
+  const [ident, setIdent] = useState("");
+  const [pro_name, setPro_name] = useState("");
+  const [pro_price, setPro_price] = useState("");
+  const [pro_benefit, setPro_benefit] = useState("");
+  const [edit, setEdit] = useState(true);
 
   //Notifications
   const [expoPushToken, setExpoPushToken] = useState("");
@@ -80,55 +87,24 @@ const Products = ({ navigation }) => {
   const notificationListener = useRef();
   const responseListener = useRef();
 
-
   //For search products
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const getbysearch = (name) => {
-    setSearchQuery(name)
-    console.log(searchQuery);
-  };
-
+  const [searchQuery, setSearchQuery] = useState("");
 
   const onRefresh = () => {
     setRefreshing(true);
-    getallproduct();
+    dispatch(fetchAllProductsData());
     // perform your refresh logic here
     setRefreshing(false);
   };
 
-  const getallproduct = () => {
-    axios
-      .get(
-        "https://unforgivable-gangs.000webhostapp.com/maincondition.php/all_products",
-        {
-          params: {
-            company: 5,
-            date: 1,
-          },
-        }
-      )
-      .then((response) => {
-        setDatas(response.data);
-      })
-      .catch((error) => {
-        console.error("No response");
-      });
-  };
-
-
-  
-
-
   useEffect(() => {
-    getallproduct();
+    dispatch(fetchAllProductsData());
 
     if (isFocused) {
-      getallproduct();
-      console.log("Screen has been refreshed");
+      dispatch(fetchAllProductsData());
+      //console.log("Screen has been refreshed");
     }
 
-    
     registerForPushNotificationsAsync().then((token) =>
       setExpoPushToken(token)
     );
@@ -140,7 +116,7 @@ const Products = ({ navigation }) => {
 
     responseListener.current =
       Notifications.addNotificationResponseReceivedListener((response) => {
-        console.log(response);
+        //console.log(response);
       });
 
     return () => {
@@ -149,7 +125,6 @@ const Products = ({ navigation }) => {
       );
       Notifications.removeNotificationSubscription(responseListener.current);
     };
-
   }, [isFocused, navigation]);
 
   //Notification and Vibration
@@ -190,7 +165,7 @@ const Products = ({ navigation }) => {
         return;
       }
       token = (await Notifications.getExpoPushTokenAsync()).data;
-      console.log(token);
+      //console.log(token);
     } else {
       alert("Must use physical device for Push Notifications");
     }
@@ -215,8 +190,6 @@ const Products = ({ navigation }) => {
       ? "wait 1s, vibrate 2s, wait 3s"
       : "wait 1s, vibrate, wait 2s, vibrate, wait 3s";
 
-
-
   const Item = ({ name, id, price, benefit }) => (
     <View style={styles.item}>
       <Text style={styles.title}>
@@ -225,7 +198,6 @@ const Products = ({ navigation }) => {
       <Text style={styles.title2}> {price}</Text>
     </View>
   );
-
 
   //Adding Command
   const Adding_information = async () => {
@@ -261,11 +233,11 @@ const Products = ({ navigation }) => {
         setShowModal(false);
         Vibration.vibrate();
         setIsLoading(false);
-        getallproduct();
-        setIdent('');
-        setPro_name('');
-        setPro_price('');
-        setPro_benefit('');
+        dispatch(fetchAllProductsData());
+        setIdent("");
+        setPro_name("");
+        setPro_price("");
+        setPro_benefit("");
       })
       .catch((error) => {
         toast.show({
@@ -275,10 +247,10 @@ const Products = ({ navigation }) => {
         setShowModal(false);
         Vibration.vibrate();
         setIsLoading(false);
-        setIdent('');
-        setPro_name('');
-        setPro_price('');
-        setPro_benefit('');
+        setIdent("");
+        setPro_name("");
+        setPro_price("");
+        setPro_benefit("");
       });
   };
 
@@ -308,8 +280,8 @@ const Products = ({ navigation }) => {
             </View>
 
             <Text style={styles.textTitle2}>
-              All {datas.length} {datas.length == 1 ? "product" : "products"}{" "}
-              list
+              All {all_products.length}{" "}
+              {all_products.length == 1 ? "product" : "products"} list
             </Text>
 
             <Center>
@@ -320,8 +292,8 @@ const Products = ({ navigation }) => {
                 }}
                 onChangeText={(e) => {
                   setSearchQuery(e);
-                  if(e===""){
-                    getallproduct()
+                  if (e === "") {
+                    dispatch(fetchAllProductsData());
                   }
                   setDatas(
                     datas.filter((item) =>
@@ -329,7 +301,6 @@ const Products = ({ navigation }) => {
                         .toLowerCase()
                         .includes(searchQuery.toLowerCase())
                     )
-
                   );
                 }}
                 value={searchQuery}
@@ -347,35 +318,47 @@ const Products = ({ navigation }) => {
           </View>
         </ScrollView>
 
-        <FlatList
-          data={datas}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate("ProductView", {
-                  id: item.id,
-                  name: item.name,
-                  price: item.price,
-                  benefit: item.benefit,
-                })
-              }
-            >
-              <Item
-                name={item.name}
-                id={item.id}
-                price={new Intl.NumberFormat("en-US", {
-                  style: "currency",
-                  currency: "RWF",
-                }).format(item.price)}
-                benefit={new Intl.NumberFormat("en-US", {
-                  style: "currency",
-                  currency: "RWF",
-                }).format(item.benefit)}
-              />
-            </TouchableOpacity>
-          )}
-          keyExtractor={(item) => item.id}
-        />
+        {all_products_isLoading ? (
+          <View>
+            <Center>
+              <ActivityIndicator size="large" color="#a8006e" />
+              <Text style={styles.textInGFuc}>Loading Please Wait...</Text>
+            </Center>
+          </View>
+        ) : (
+          <FlatList
+           style={{
+            backgroundColor:'white',
+           }}
+            data={all_products}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate("ProductView", {
+                    id: item.id,
+                    name: item.name,
+                    price: item.price,
+                    benefit: item.benefit,
+                  })
+                }
+              >
+                <Item
+                  name={item.name}
+                  id={item.id}
+                  price={new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "RWF",
+                  }).format(item.price)}
+                  benefit={new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "RWF",
+                  }).format(item.benefit)}
+                />
+              </TouchableOpacity>
+            )}
+            keyExtractor={(item) => item.id}
+          />
+        )}
 
         <Center flex={1} px="3">
           <Center>
@@ -475,6 +458,7 @@ const styles = StyleSheet.create({
   containerer: {
     flex: 1,
     marginTop: StatusBar.currentHeight || 0,
+    backgroundColor: "#fff",
   },
 
   header: {
@@ -541,8 +525,6 @@ const styles = StyleSheet.create({
     textAlign: "left",
   },
 
-
-
   itemBtn: {
     backgroundColor: "#a8006e",
     padding: 10,
@@ -567,15 +549,13 @@ const styles = StyleSheet.create({
     elevation: 5,
     alignItems: "center",
     flexDirection: "row",
-    marginTop:10
+    marginTop: 10,
   },
 
-  itemBtnText:{
-    color:'white',
-    marginLeft:10
+  itemBtnText: {
+    color: "white",
+    marginLeft: 10,
   },
-
-
 });
 
 export default Products;

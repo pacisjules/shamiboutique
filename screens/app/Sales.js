@@ -14,6 +14,7 @@ import {
   Vibration,
   ActivityIndicator,
 } from "react-native";
+
 import { useFonts } from "expo-font";
 import {
   MaterialCommunityIcons,
@@ -43,6 +44,9 @@ import axios from "axios";
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
 
+import { useSelector, useDispatch } from "react-redux";
+import { fetchAllSalesData } from "../../features/getallsales/getallsales";
+
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -57,6 +61,13 @@ const Sales = ({ navigation }) => {
   const [dataspro, setDataspro] = useState([]);
   const isFocused = useIsFocused();
   const toast = useToast();
+
+  const dispatch = useDispatch();
+
+  //Get All sales from redux array
+  const { all_sale_error, all_sales, all_sales_isLoading } = useSelector(
+    (state) => state.all_sales
+  );
 
   //Dates
   const currentDate = new Date();
@@ -95,29 +106,10 @@ const Sales = ({ navigation }) => {
 
   const onRefresh = () => {
     setRefreshing(true);
-    getallsales();
+    dispatch(fetchAllSalesData());
     getallproduct();
     // perform your refresh logic here
     setRefreshing(false);
-  };
-
-  const getallsales = () => {
-    axios
-      .get(
-        "https://unforgivable-gangs.000webhostapp.com/maincondition.php/all_sales_days",
-        {
-          params: {
-            date: formattedDate,
-            company: 5,
-          },
-        }
-      )
-      .then((response) => {
-        setDatas(response.data);
-      })
-      .catch((error) => {
-        console.error("No response");
-      });
   };
 
   const getallproduct = () => {
@@ -135,17 +127,16 @@ const Sales = ({ navigation }) => {
         setDataspro(response.data);
       })
       .catch((error) => {
-        console.error("No response");
+        // console.error("No response");
       });
   };
 
   useEffect(() => {
-    getallsales();
+    dispatch(fetchAllSalesData());
     getallproduct();
-
     if (isFocused) {
-      getallproduct();
-      console.log("Screen has been refreshed");
+      dispatch(fetchAllSalesData());
+      //console.log("Screen has been refreshed");
     }
 
     registerForPushNotificationsAsync().then((token) =>
@@ -159,7 +150,7 @@ const Sales = ({ navigation }) => {
 
     responseListener.current =
       Notifications.addNotificationResponseReceivedListener((response) => {
-        console.log(response);
+        //console.log(response);
       });
 
     return () => {
@@ -170,8 +161,8 @@ const Sales = ({ navigation }) => {
     };
   }, [isFocused, navigation]);
 
-  //Notification and Vibration
 
+  //Notification and Vibration
   async function schedulePushNotification() {
     await Notifications.scheduleNotificationAsync({
       content: {
@@ -208,7 +199,7 @@ const Sales = ({ navigation }) => {
         return;
       }
       token = (await Notifications.getExpoPushTokenAsync()).data;
-      console.log(token);
+      //console.log(token);
     } else {
       alert("Must use physical device for Push Notifications");
     }
@@ -237,9 +228,9 @@ const Sales = ({ navigation }) => {
     <View style={styles.item}>
       <View style={styles.left}>
         <Text style={styles.tit}>
-          {id}. {name}
+          {id}.{name}
         </Text>
-        <Text style={styles.tit}> price on {price}</Text>
+        <Text style={styles.tit}>Price on {price}</Text>
       </View>
       <View style={styles.right}>
         <Text style={styles.title2}> Qty ({quantity})</Text>
@@ -281,7 +272,7 @@ const Sales = ({ navigation }) => {
         Vibration.vibrate();
         setIsLoading(false);
         getallproduct();
-        getallsales();
+        dispatch(fetchAllSalesData());
         setIdent("");
         setPro_name("");
         setPro_price("");
@@ -304,69 +295,79 @@ const Sales = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.containerer}>
-      <ScrollView
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        <View style={styles.container}>
-          <StatusBar
-            backgroundColor="#ff00a6" // Set the background color of the status bar
-            barStyle="white" // Set the text color of the status bar to dark
-            hidden={false} // Show the status bar
-          />
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.itemBtn}
-              onPress={() => setShowModal(true)}
-            >
-              <MaterialCommunityIcons
-                name="point-of-sale"
-                size={24}
-                color="white"
-              />
-              <Text style={styles.itemBtnText}>Sale new</Text>
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.textTitle2}>
-            All {datas.length} {datas.length == 1 ? "sale" : "sales"} list
-          </Text>
-        </View>
-      </ScrollView>
-
-      <FlatList
-        data={datas}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            onPress={() =>
-              navigation.navigate("ProductView", {
-                id: item.id,
-                name: item.name,
-                price: item.price,
-                benefit: item.benefit,
-              })
-            }
-          >
-            <Item
-              name={item.name}
-              id={item.id}
-              price={new Intl.NumberFormat("en-US", {
-                style: "currency",
-                currency: "RWF",
-              }).format(item.price)}
-              quantity={item.quantity}
-              total={new Intl.NumberFormat("en-US", {
-                style: "currency",
-                currency: "RWF",
-              }).format(item.Total)}
-            />
-          </TouchableOpacity>
-        )}
-        keyExtractor={(item) => item.id}
-      />
-
       <NativeBaseProvider>
+        <ScrollView
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+        >
+          <View style={styles.container}>
+            <StatusBar
+              backgroundColor="#ff00a6" // Set the background color of the status bar
+              barStyle="white" // Set the text color of the status bar to dark
+              hidden={false} // Show the status bar
+            />
+            <View style={styles.header}>
+              <TouchableOpacity
+                style={styles.itemBtn}
+                onPress={() => setShowModal(true)}
+              >
+                <MaterialCommunityIcons
+                  name="point-of-sale"
+                  size={24}
+                  color="white"
+                />
+                <Text style={styles.itemBtnText}>Sale new</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.textTitle2}>
+              All {all_sales.length} {all_sales.length == 1 ? "sale" : "sales"}{" "}
+              list
+            </Text>
+          </View>
+        </ScrollView>
+
+        {all_sales_isLoading ? (
+          <View>
+            <Center>
+              <ActivityIndicator size="large" color="#a8006e" />
+              <Text style={styles.textInGFuc}>Loading Please Wait...</Text>
+            </Center>
+          </View>
+        ) : (
+          <FlatList
+            data={all_sales}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                onPress={() =>
+                  navigation.navigate("ProductView", {
+                    id: item.id,
+                    name: item.name,
+                    price: item.price,
+                    benefit: item.benefit,
+                  })
+                }
+              >
+                <Item
+                  name={item.name}
+                  id={item.id}
+                  price={new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "RWF",
+                  }).format(item.price)}
+                  quantity={item.quantity}
+                  total={new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "RWF",
+                  }).format(item.Total)}
+                />
+              </TouchableOpacity>
+            )}
+            keyExtractor={(item) => item.id}
+          />
+        )}
+
         <Center flex={1} px="3">
           <Center>
             <Modal
@@ -402,7 +403,7 @@ const Sales = ({ navigation }) => {
                     >
                       {dataspro.map((item) => (
                         <Select.Item
-                          key={item.value}
+                          key={item.id}
                           label={`${item.name} Cost ${item.price}.`}
                           value={item.id}
                         />
@@ -419,17 +420,24 @@ const Sales = ({ navigation }) => {
                       inputMode="numeric"
                     />
                   </FormControl>
-                  <Text style={{
-                    color:'green',
-                    fontSize:10
-                  }}>{pro_quatity==0?``:`Total are ${new Intl.NumberFormat("en-US", {
-                    style: "currency",
-                    currency: "RWF",
-                  }).format(result.price * pro_quatity)} and Benefit are ${new Intl.NumberFormat("en-US", {
-                    style: "currency",
-                    currency: "RWF",
-                  }).format(result.benefit * pro_quatity)}.`}</Text>
-                  
+                  <Text
+                    style={{
+                      color: "green",
+                      fontSize: 10,
+                    }}
+                  >
+                    {pro_quatity == 0
+                      ? ``
+                      : `Total are ${new Intl.NumberFormat("en-US", {
+                          style: "currency",
+                          currency: "RWF",
+                        }).format(
+                          result.price * pro_quatity
+                        )} and Benefit are ${new Intl.NumberFormat("en-US", {
+                          style: "currency",
+                          currency: "RWF",
+                        }).format(result.benefit * pro_quatity)}.`}
+                  </Text>
                 </Modal.Body>
                 <Modal.Footer>
                   <Button.Group space={2}>
@@ -496,9 +504,10 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "bold",
     fontSize: 16,
-    marginTop: 5,
+    marginTop: 15,
     marginLeft: 5,
     color: "#a8006e",
+    marginBottom: 35,
   },
   item: {
     backgroundColor: "white",
@@ -524,6 +533,21 @@ const styles = StyleSheet.create({
     elevation: 5,
     alignItems: "center",
     flexDirection: "row",
+  },
+
+  left: {
+    backgroundColor: "#fff2fb",
+    width: "60%",
+    height: 65,
+    borderRadius: 10,
+    justifyContent: "center",
+    paddingLeft: 10,
+  },
+
+  tit: {
+    fontSize: 11,
+    color: "black",
+    textAlign: "left",
   },
 
   title: {

@@ -75,10 +75,10 @@ const Drawer = createDrawerNavigator();
 function MyDrawer() {
   return (
     <Drawer.Navigator
-      drawerContentOptions={{
-        activeTintColor: "#e91e63",
-        itemStyle: { marginVertical: 5 },
-      }}
+      // drawerContentOptions={{
+      //   activeTintColor: "#e91e63",
+      //   itemStyle: { marginVertical: 5 },
+      // }}
       drawerContent={(props) => <CustomDrawerContent {...props} />}
     >
       <Drawer.Screen
@@ -98,6 +98,7 @@ function MyDrawer() {
       />
 
       <Drawer.Screen name="Article" component={Article} />
+      
     </Drawer.Navigator>
   );
 }
