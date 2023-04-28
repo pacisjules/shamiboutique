@@ -13,14 +13,17 @@ import {
   Platform,
   Vibration,
   ActivityIndicator,
+  ImageBackground,
+  Alert,
+  Share,
 } from "react-native";
+
 import { useFonts } from "expo-font";
 import {
   MaterialCommunityIcons,
   AntDesign,
   MaterialIcons,
   FontAwesome,
-  Ionicons,
 } from "@expo/vector-icons";
 
 import {
@@ -32,9 +35,8 @@ import {
   NativeBaseProvider,
   AlertDialog,
   useToast,
-  Icon,
-  Stack,
-  Pressable,
+  Select,
+  CheckIcon,
 } from "native-base";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -42,11 +44,15 @@ import { useNavigation } from "@react-navigation/native";
 import { useIsFocused } from "@react-navigation/native";
 import axios from "axios";
 
-import { useSelector, useDispatch } from "react-redux";
-import { fetchAllProductsData, fetchSearchProductsData } from "../../features/getfullproducts/getallproducts";
-
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
+import * as Font from "expo-font";
+
+import { useSelector, useDispatch } from "react-redux";
+import {
+  fetchTotalsDataYesterDay,
+  fetchAllSalesDataYesterDay,
+} from "../../features/yesterdaySales/yesterdaySales";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -56,18 +62,55 @@ Notifications.setNotificationHandler({
   }),
 });
 
-const Products = ({ navigation }) => {
-  const dispatch = useDispatch();
-
-  //Get All products from redux array
-  const { all_product_error, all_products, all_products_isLoading } =
-    useSelector((state) => state.all_products);
-
-  //Normal
+const Yesterday = ({ navigation }) => {
+  const loadImg = require("../../assets/afroGril.jpg");
+  const [fontsLoaded, setFontsLoaded] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [datas, setDatas] = useState([]);
+  const [dataspro, setDataspro] = useState([]);
   const isFocused = useIsFocused();
   const toast = useToast();
+
+  const [user, setUser] = useState(AsyncStorage.getItem("username"));
+  const [company, setCompany] = useState(AsyncStorage.getItem("co_name"));
+
+  const dispatch = useDispatch();
+
+  //Get All sales from redux array
+  const { all_sale_error, all_sales, all_sales_isLoading } = useSelector(
+    (state) => state.yesterdaySales
+  );
+
+  const { Total_data, YestisLoading, error } = useSelector(
+    (state) => state.yesterdaySales
+  );
+
+  //Load fonts
+  async function loadFonts() {
+    await Font.loadAsync({
+      magneto: require("../../assets/fonts/magneto.ttf"),
+      Cocogoose: require("../../assets/fonts/Cocogoose.ttf"),
+
+      "Poppins-Bold": require("../../assets/fonts/Poppins-Bold.ttf"),
+      "Poppins-Regular": require("../../assets/fonts/Poppins-Regular.ttf"),
+      "Poppins-SemiBold": require("../../assets/fonts/Poppins-SemiBold.ttf"),
+    });
+
+    setFontsLoaded(true);
+  }
+
+  //Dates
+  const currentDate = new Date();
+  const montly = currentDate.getMonth();
+  const date = currentDate.getDate();
+  const year = currentDate.getFullYear();
+
+  const formattedDate =
+    year +
+    "-" +
+    (montly + 1).toString().padStart(2, "0") +
+    "-" +
+    date.toString().padStart(2, "0");
 
   //Modals
   const [showModal, setShowModal] = useState(false);
@@ -77,9 +120,10 @@ const Products = ({ navigation }) => {
   //Infos
   const [ident, setIdent] = useState("");
   const [pro_name, setPro_name] = useState("");
-  const [pro_price, setPro_price] = useState("");
+  const [pro_quatity, setQuatity] = useState(0);
   const [pro_benefit, setPro_benefit] = useState("");
   const [edit, setEdit] = useState(true);
+  const [service, setService] = React.useState("");
 
   //Notifications
   const [expoPushToken, setExpoPushToken] = useState("");
@@ -87,21 +131,46 @@ const Products = ({ navigation }) => {
   const notificationListener = useRef();
   const responseListener = useRef();
 
-  //For search products
-  const [searchQuery, setSearchQuery] = useState("");
+  //Get price for calculation
+  const [result, setResult] = useState([]);
 
   const onRefresh = () => {
     setRefreshing(true);
-    dispatch(fetchAllProductsData());
+    dispatch(fetchAllSalesDataYesterDay());
+    dispatch(fetchTotalsDataYesterDay());
+    getallproduct();
     // perform your refresh logic here
     setRefreshing(false);
   };
 
+  const getallproduct = () => {
+    axios
+      .get(
+        "https://unforgivable-gangs.000webhostapp.com/maincondition.php/all_products",
+        {
+          params: {
+            company: 5,
+            date: 1,
+          },
+        }
+      )
+      .then((response) => {
+        setDataspro(response.data);
+      })
+      .catch((error) => {
+        // console.error("No response");
+      });
+  };
 
   useEffect(() => {
-    dispatch(fetchAllProductsData());
+    dispatch(fetchAllSalesDataYesterDay());
+    dispatch(fetchTotalsDataYesterDay());
+    getallproduct();
+    loadFonts();
     if (isFocused) {
-      dispatch(fetchAllProductsData());
+      dispatch(fetchAllSalesDataYesterDay());
+      dispatch(fetchTotalsDataYesterDay());
+      //console.log("Screen has been refreshed");
     }
 
     registerForPushNotificationsAsync().then((token) =>
@@ -127,12 +196,11 @@ const Products = ({ navigation }) => {
   }, [isFocused, navigation]);
 
   //Notification and Vibration
-
   async function schedulePushNotification() {
     await Notifications.scheduleNotificationAsync({
       content: {
         title: `Shami Boutique sales system`,
-        body: `You've add new product ${pro_name}`,
+        body: `You've add new sale.`,
         data: { data: "goes here" },
       },
       trigger: { seconds: 1 },
@@ -189,12 +257,19 @@ const Products = ({ navigation }) => {
       ? "wait 1s, vibrate 2s, wait 3s"
       : "wait 1s, vibrate, wait 2s, vibrate, wait 3s";
 
-  const Item = ({ name, id, price, benefit }) => (
+  const Item = ({ name, id, price, quantity, total, Totalbenefit }) => (
     <View style={styles.item}>
-      <Text style={styles.title}>
-        {id}. {name}
-      </Text>
-      <Text style={styles.title2}> {price}</Text>
+      <View style={styles.left}>
+        <Text style={styles.tit}>
+          {id}.{name}
+        </Text>
+        <Text style={styles.tit}>Price on {price}</Text>
+        <Text style={styles.tit}>Benefit: {Totalbenefit}</Text>
+      </View>
+      <View style={styles.right}>
+        <Text style={styles.title2}> Qty ({quantity})</Text>
+        <Text style={styles.title2}> Total {total}</Text>
+      </View>
     </View>
   );
 
@@ -204,11 +279,9 @@ const Products = ({ navigation }) => {
     setIsLoading(true);
 
     const data = {
-      id: ident,
-      name: pro_name,
-      price: pro_price,
-      benefit: pro_benefit,
-      company_ID: 5,
+      product_id: service,
+      sales_point_id: 1,
+      quantity: pro_quatity,
     };
 
     const config = {
@@ -219,20 +292,22 @@ const Products = ({ navigation }) => {
 
     await axios
       .post(
-        "https://unforgivable-gangs.000webhostapp.com/main.php/add_product",
+        "https://unforgivable-gangs.000webhostapp.com/main.php/add_sale",
         data,
         config
       )
       .then((response) => {
         toast.show({
-          description: "Hello product has added",
+          description: "Sale has added",
         });
         schedulePushNotification();
         setEdit(true);
         setShowModal(false);
         Vibration.vibrate();
         setIsLoading(false);
-        dispatch(fetchAllProductsData());
+        getallproduct();
+        dispatch(fetchAllSalesDataYesterDay());
+        dispatch(fetchTotalsDataYesterDay());
         setIdent("");
         setPro_name("");
         setPro_price("");
@@ -253,6 +328,31 @@ const Products = ({ navigation }) => {
       });
   };
 
+  if (!fontsLoaded) {
+    return (
+      <NativeBaseProvider>
+        <ImageBackground
+          source={loadImg}
+          resizeMode="cover"
+          style={styles.image}
+        >
+          <Center flex={1} px="3">
+            <ActivityIndicator size="large" color="#a8006e" />
+            <Text
+              style={{
+                color: "#ff00a6",
+                fontWeight: "bold",
+                fontSize: 20,
+              }}
+            >
+              Loading...
+            </Text>
+          </Center>
+        </ImageBackground>
+      </NativeBaseProvider>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.containerer}>
       <NativeBaseProvider>
@@ -267,56 +367,73 @@ const Products = ({ navigation }) => {
               barStyle="white" // Set the text color of the status bar to dark
               hidden={false} // Show the status bar
             />
-
             <View style={styles.header}>
-              <TouchableOpacity
-                style={styles.itemBtn}
-                onPress={() => setShowModal(true)}
-              >
-                <MaterialIcons name="add-to-photos" size={24} color="white" />
-                <Text style={styles.itemBtnText}>Add new product</Text>
-              </TouchableOpacity>
+              {YestisLoading ? (
+                <ActivityIndicator size="small" color="#a8006e" />
+              ) : (
+                Total_data.map((post) => (
+                  <Text
+                    key="1"
+                    style={{
+                      textAlign: "center",
+                      fontSize: 18,
+                      marginLeft: 5,
+                      color: "black",
+                      fontFamily: "Poppins-Bold",
+                    }}
+                  >
+                    Total sales:{" "}
+                    {new Intl.NumberFormat("en-US", {
+                      style: "currency",
+                      currency: "RWF",
+                    }).format(post.SalesTotal)}
+                  </Text>
+                ))
+              )}
+
+              {YestisLoading ? (
+                <ActivityIndicator size="small" color="#a8006e" />
+              ) : (
+                Total_data.map((post) => (
+                  <Text
+                    key="1"
+                    style={{
+                      textAlign: "center",
+                      fontSize: 18,
+                      marginLeft: 5,
+                      color: "black",
+                      fontFamily: "Poppins-Bold",
+                    }}
+                  >
+                    Benefit:{" "}
+                    {new Intl.NumberFormat("en-US", {
+                      style: "currency",
+                      currency: "RWF",
+                    }).format(post.Benefit_Total)}
+                  </Text>
+                ))
+              )}
             </View>
 
-            <Text style={styles.textTitle2}>
-              All {all_products.length}{" "}
-              {all_products.length == 1 ? "product" : "products"} list
+            <Text
+              style={{
+                fontFamily: "Regular",
+                textAlign: "center",
+                fontWeight: "bold",
+                fontSize: 16,
+                marginLeft: 5,
+                color: "#a8006e",
+                marginBottom: 30,
+                marginTop: 15,
+              }}
+            >
+              All {all_sales.length} {all_sales.length == 1 ? "sale" : "sales"}{" "}
+              list of Yesterday
             </Text>
-
-
-            <Center>
-
-              <Input
-                w={{
-                  base: "94%",
-                  md: "25%",
-                }}
-                onChangeText={(e) => {
-                  setSearchQuery(e);
-                  dispatch(fetchSearchProductsData(e));
-                }}
-                
-                value={searchQuery}
-                InputLeftElement={
-                  <Icon
-                    as={<Ionicons name="ios-search-circle" />}
-                    size={5}
-                    ml="2"
-                    color="muted.600"
-                  />
-                }
-                placeholder="Search..."
-              />
-
-
-            </Center>
-
-
-
           </View>
         </ScrollView>
 
-        {all_products_isLoading ? (
+        {all_sales_isLoading ? (
           <View>
             <Center>
               <ActivityIndicator size="large" color="#a8006e" />
@@ -325,19 +442,49 @@ const Products = ({ navigation }) => {
           </View>
         ) : (
           <FlatList
-           style={{
-            backgroundColor:'white',
-           }}
-            data={all_products}
+            data={all_sales}
             renderItem={({ item }) => (
               <TouchableOpacity
                 onPress={() =>
-                  navigation.navigate("ProductView", {
-                    id: item.id,
-                    name: item.name,
-                    price: item.price,
-                    benefit: item.benefit,
-                  })
+                  Alert.alert(
+                    `${item.name}`,
+                    `Information:\n1. Qty ${item.quantity}\n2. Benefit ${
+                      item.Totalbenefit
+                    } \n3. Time ${
+                      item.Sales_time
+                    }\n5. Total:${new Intl.NumberFormat("en-US", {
+                      style: "currency",
+                      currency: "RWF",
+                    }).format(item.Total)}`,
+                    [
+                      {
+                        text: "OK",
+                        onPress: () => console.log("OK Pressed"),
+                      },
+                      {
+                        text: "SHARE",
+                        onPress: () =>
+                          Share.share({
+                            message: `${company._j} system:\n${
+                              user._j
+                            } share to you ${
+                              item.name
+                            } sale information.\n1. Price: ${
+                              item.price
+                            }\n2. Qty: ${item.quantity}\n3. Benefit: ${
+                              item.Totalbenefit
+                            } \n4.Time: ${
+                              item.Sales_time
+                            }\nTotal:${new Intl.NumberFormat("en-US", {
+                              style: "currency",
+                              currency: "RWF",
+                            }).format(item.Total)}`,
+                            url: "https://myapp.com",
+                            title: `${company._j} `,
+                          }),
+                      },
+                    ]
+                  )
                 }
               >
                 <Item
@@ -347,10 +494,15 @@ const Products = ({ navigation }) => {
                     style: "currency",
                     currency: "RWF",
                   }).format(item.price)}
-                  benefit={new Intl.NumberFormat("en-US", {
+                  quantity={item.quantity}
+                  total={new Intl.NumberFormat("en-US", {
                     style: "currency",
                     currency: "RWF",
-                  }).format(item.benefit)}
+                  }).format(item.Total)}
+                  Totalbenefit={new Intl.NumberFormat("en-US", {
+                    style: "currency",
+                    currency: "RWF",
+                  }).format(item.Totalbenefit)}
                 />
               </TouchableOpacity>
             )}
@@ -364,44 +516,70 @@ const Products = ({ navigation }) => {
               isOpen={showModal}
               onClose={() => {
                 setShowModal(false);
-                setIdent("");
-                setPro_name("");
-                setPro_price("");
-                setPro_benefit("");
+                setService("");
+                setQuatity("");
               }}
               animationDuration={500}
             >
               <Modal.Content maxWidth="600px" width="340px">
                 <Modal.CloseButton />
-                <Modal.Header>Add New</Modal.Header>
+                <Modal.Header>Sale</Modal.Header>
                 <Modal.Body>
                   <FormControl>
-                    <FormControl.Label>Name</FormControl.Label>
-                    <Input
-                      value={pro_name}
-                      onChangeText={setPro_name}
-                      editable={edit}
-                    />
-                  </FormControl>
-                  <FormControl mt="3">
-                    <FormControl.Label>Price</FormControl.Label>
-                    <Input
-                      value={pro_price}
-                      onChangeText={setPro_price}
-                      editable={edit}
-                      inputMode="numeric"
-                    />
+                    <FormControl.Label>Product</FormControl.Label>
+                    <Select
+                      selectedValue={service}
+                      minWidth="200"
+                      accessibilityLabel="Choose product"
+                      placeholder="Select product"
+                      _selectedItem={{
+                        bg: "teal.600",
+                        endIcon: <CheckIcon size="4" />,
+                      }}
+                      mt={1}
+                      onValueChange={(e) => {
+                        setService(e);
+                        setResult(dataspro.find((item) => item.id === e));
+                      }}
+                      value={service}
+                    >
+                      {dataspro.map((item) => (
+                        <Select.Item
+                          key={item.id}
+                          label={`${item.name} Cost ${item.price}.`}
+                          value={item.id}
+                        />
+                      ))}
+                    </Select>
                   </FormControl>
 
                   <FormControl mt="3">
-                    <FormControl.Label>Benefit</FormControl.Label>
+                    <FormControl.Label>Quantity</FormControl.Label>
                     <Input
-                      value={pro_benefit}
-                      onChangeText={setPro_benefit}
+                      value={pro_quatity}
+                      onChangeText={setQuatity}
                       editable={edit}
                       inputMode="numeric"
                     />
                   </FormControl>
+                  <Text
+                    style={{
+                      color: "green",
+                      fontSize: 10,
+                    }}
+                  >
+                    {pro_quatity == 0
+                      ? ``
+                      : `Total are ${new Intl.NumberFormat("en-US", {
+                          style: "currency",
+                          currency: "RWF",
+                        }).format(
+                          result.price * pro_quatity
+                        )} and Benefit are ${new Intl.NumberFormat("en-US", {
+                          style: "currency",
+                          currency: "RWF",
+                        }).format(result.benefit * pro_quatity)}.`}
+                  </Text>
                 </Modal.Body>
                 <Modal.Footer>
                   <Button.Group space={2}>
@@ -428,7 +606,7 @@ const Products = ({ navigation }) => {
                         {isLoading ? (
                           <ActivityIndicator size="small" color="white" />
                         ) : (
-                          <Text style={{ color: "white" }}>Add product</Text>
+                          <Text style={{ color: "white" }}>Apply now</Text>
                         )}
                       </Button>
                     </TouchableOpacity>
@@ -449,14 +627,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     marginTop: 0,
     width: "100%",
-    height: 230,
+    height: "100%",
     flex: 1,
   },
 
   containerer: {
     flex: 1,
     marginTop: StatusBar.currentHeight || 0,
-    backgroundColor: "#fff",
   },
 
   header: {
@@ -469,8 +646,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontWeight: "bold",
     fontSize: 16,
-    marginTop: 10,
-    marginBottom: 10,
     marginLeft: 5,
     color: "#a8006e",
   },
@@ -481,13 +656,13 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
     borderRadius: 10,
     width: "94%",
-    height: 55,
+    height: 85,
     textAlign: "center",
     alignItems: "center",
     borderColor: "#a8006e",
     borderStyle: "solid",
     borderWidth: 1,
-    justifyContent: "space-between",
+    justifyContent: "space-around",
     shadowColor: "#000000",
     shadowOffset: {
       width: 0,
@@ -498,6 +673,21 @@ const styles = StyleSheet.create({
     elevation: 5,
     alignItems: "center",
     flexDirection: "row",
+  },
+
+  left: {
+    backgroundColor: "#fff2fb",
+    width: "60%",
+    height: 65,
+    borderRadius: 10,
+    justifyContent: "center",
+    paddingLeft: 10,
+  },
+
+  tit: {
+    fontSize: 10,
+    color: "black",
+    textAlign: "left",
   },
 
   title: {
@@ -519,7 +709,6 @@ const styles = StyleSheet.create({
     color: "black",
     textAlign: "center",
     fontWeight: "900",
-    width: "40%",
     textAlign: "left",
   },
 
@@ -556,4 +745,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Products;
+export default Yesterday;

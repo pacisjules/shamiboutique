@@ -35,6 +35,7 @@ export const {
   set_allProductsDataFailure,
 } = getallproducts.actions;
 
+
 //Fetching data
 export const fetchAllProductsData = () => async (dispatch) => {
   dispatch(set_allProductsDataStart());
@@ -45,6 +46,28 @@ export const fetchAllProductsData = () => async (dispatch) => {
         params: {
           company: 5,
           date: 1,
+        },
+      }
+    );
+    dispatch(set_allProductDataSuccess(response.data));
+  } catch (error) {
+    dispatch(set_allProductsDataFailure(error.message));
+  }
+};
+
+
+
+//Fetching data
+export const fetchSearchProductsData = (search_name) => async (dispatch) => {
+  dispatch(set_allProductsDataStart());
+  try {
+    const response = await axios.get(
+      "https://unforgivable-gangs.000webhostapp.com/searching.php/search_products",
+      {
+        params: {
+          company: 5,
+          date: 1,
+          name:search_name
         },
       }
     );

@@ -13,6 +13,7 @@ export const getallsales = createSlice({
   initialState,
 
   reducers: {
+    
     //Get_information
     set_allsalesDataStart(state) {
       state.all_sales_isLoading = true;
@@ -34,6 +35,8 @@ export const {
   set_allsaleDataSuccess,
   set_allsalesDataFailure,
 } = getallsales.actions;
+
+
 
 //Fetching data
 export const fetchAllSalesData = () => async (dispatch) => {

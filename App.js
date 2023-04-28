@@ -13,8 +13,9 @@ import Entry from "./screens/app/Entry";
 import Products from "./screens/app/Products";
 import ProductView from "./screens/app/ProductView";
 import Sales from "./screens/app/Sales";
-
-
+import Reports from "./screens/app/Reports";
+import Yesterday from "./screens/app/Yesterday";
+import RedPick from "./screens/app/RedPick";
 import {
   Center,
   NativeBaseProvider,
@@ -111,6 +112,9 @@ export default function App() {
               title="View information"
             />
             <Stack.Screen name="Sales" component={Sales} title="Sales" />
+            <Stack.Screen name="Reports" component={Reports} title="Reports" />
+            <Stack.Screen name="Yesterday" component={Yesterday} title="Yesterday report" />
+            <Stack.Screen name="RedPick" component={RedPick} title="Report" />
           </Stack.Navigator>
         ) : (
           <Stack.Navigator
@@ -131,6 +135,9 @@ export default function App() {
               title="View information"
             />
             <Stack.Screen name="Sales" component={Sales} title="Sales" />
+            <Stack.Screen name="Reports" component={Reports} title="Reports" />
+            <Stack.Screen name="Yesterday" component={Yesterday} title="Yesterday report" />
+            <Stack.Screen name="RedPick" component={RedPick} title="Report" />
             <Stack.Screen
               name="Home"
               component={HomeScreen}
