@@ -50,6 +50,8 @@ const LoginScreen = ({ navigation }) => {
         AsyncStorage.setItem("co_id", response.data.company_ID);
         AsyncStorage.setItem("co_name", response.data.company_name);
         AsyncStorage.setItem("username", response.data.username);
+        AsyncStorage.setItem("salepoint_id", response.data.salepoint_id);
+        AsyncStorage.setItem("userType", response.data.userType);
         
         setEdit(true);
         setIsLoading(false);

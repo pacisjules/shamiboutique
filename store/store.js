@@ -5,7 +5,8 @@ import getallproducts from '../features/getfullproducts/getallproducts';
 import getallsales from '../features/getallsales/getallsales';
 import yesterdaySales from '../features/yesterdaySales/yesterdaySales';
 import RedPickDate from '../features/RedpickDateTime/RedPickDate';
-
+import getalltypes from '../features/getalltypes/getalltypes';
+import getallexpenses from '../features/getallexpenses/getallexpenses';
 export const store = configureStore({
   reducer: {
     changeTotals:My_change_totals,
@@ -14,5 +15,7 @@ export const store = configureStore({
     all_sales:getallsales,
     yesterdaySales:yesterdaySales,
     RedPickDate:RedPickDate,
+    getalltypes:getalltypes,
+    getallexpenses:getallexpenses,
   },
 })

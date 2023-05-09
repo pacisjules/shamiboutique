@@ -49,6 +49,7 @@ export default function Entry({ navigation }) {
 
   const [user, setUser] = useState(AsyncStorage.getItem("username"));
   const [company, setCompany] = useState(AsyncStorage.getItem("co_name"));
+  const [salesP, setsalesP] = useState(AsyncStorage.getItem("salepoint_id"));
 
   const montly = currentDate.getMonth();
   const date = currentDate.getDate();
@@ -345,7 +346,9 @@ export default function Entry({ navigation }) {
               </View>
             </TouchableOpacity>
 
-            <TouchableOpacity onPress={() => alert("Expenses")}>
+            <TouchableOpacity onPress={() => navigation.navigate("Expenses",{
+              SD:salesP._j
+            })}>
               <View style={styles.fucs}>
                 <MaterialIcons
                   name="workspaces-filled"

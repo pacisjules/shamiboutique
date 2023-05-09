@@ -32,6 +32,8 @@ const Registeruser = ({ navigation }) => {
       password: password,
       company_name: "Igurire Shami Boutique",
       company_ID: 5,
+      salepoint_id: 2,
+      userType: 'EndUser',
     };
 
     const config = {

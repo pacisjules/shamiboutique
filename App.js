@@ -16,6 +16,7 @@ import Sales from "./screens/app/Sales";
 import Reports from "./screens/app/Reports";
 import Yesterday from "./screens/app/Yesterday";
 import RedPick from "./screens/app/RedPick";
+import Expenses from "./screens/app/Expenses";
 import {
   Center,
   NativeBaseProvider,
@@ -115,6 +116,7 @@ export default function App() {
             <Stack.Screen name="Reports" component={Reports} title="Reports" />
             <Stack.Screen name="Yesterday" component={Yesterday} title="Yesterday report" />
             <Stack.Screen name="RedPick" component={RedPick} title="Report" />
+            <Stack.Screen name="Expenses" component={Expenses} title="Expenses" />
           </Stack.Navigator>
         ) : (
           <Stack.Navigator
@@ -138,6 +140,8 @@ export default function App() {
             <Stack.Screen name="Reports" component={Reports} title="Reports" />
             <Stack.Screen name="Yesterday" component={Yesterday} title="Yesterday report" />
             <Stack.Screen name="RedPick" component={RedPick} title="Report" />
+            <Stack.Screen name="Expenses" component={Expenses} title="Expenses" />
+
             <Stack.Screen
               name="Home"
               component={HomeScreen}
@@ -154,8 +158,10 @@ export default function App() {
                   alignItems: "center",
                 },
               }}
-
             />
+
+
+
           </Stack.Navigator>
         )}
       </NavigationContainer>
